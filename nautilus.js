@@ -7,6 +7,7 @@ var self = this,
 
 var uPaths = {};
 var uOrigins = [];
+var uTimeout = Math.pow(2, 31) - 1;
 
 var _ = {
   extends: function (a, b, undefOnly) {
@@ -82,7 +83,14 @@ function loadScript(config, currentQueue) {
   scr.src = src;
   document.head.appendChild(scr);
 
+  var timeoutID = window.setTimeout(function () {
+    document.head.removeChild(scr);
+    scr.onerror = null;
+    handleError();
+  }, config.timeout);
+
   function handleLoad() {
+    window.clearTimeout(timeoutID);
     queue.incr(currentQueue);
   }
 
@@ -98,16 +106,14 @@ function loadScript(config, currentQueue) {
       src
     );
     if (useOrigins) {
-      loadScript({
+      loadScript(_.merge(config, {
         origins: origins.slice(1),
-        path: path,
-      }, currentQueue);
+      }), currentQueue);
     }
     if (paths.length > 1) {
-      loadScript({
-        origins: origins,
+      loadScript(_.merge(config, {
         path: paths.slice(1),
-      }, currentQueue);
+      }), currentQueue);
     }
   }
 }
@@ -132,7 +138,8 @@ function fetch() {
     var path = paths[i];
     loadScript({
       origins: uOrigins,
-      path: uPaths[path] || path
+      path: uPaths[path] || path,
+      timeout: uTimeout
     }, q);
   }
 }
@@ -144,18 +151,23 @@ this.config = function (settings) {
   if (typeof(settings.paths) === 'object') {
     uPaths = _.merge(uPaths, settings.paths);
   }
+  if (typeof settings.timeout === 'number') {
+    uTimeout = settings.timeout;
+  }
 };
 
 this.getConfig = function () {
   return {
     origins: uOrigins,
-    paths: uPaths
+    paths: uPaths,
+    timeout: uTimeout
   }
 };
 
 this.resetConfig = function () {
   uOrigins = [];
   uPaths = {};
+  uTimeout = Math.pow(2, 31) - 1;
   queue.reset();
 };
 

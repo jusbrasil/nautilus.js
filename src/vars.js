@@ -3,3 +3,4 @@ var self = this,
 
 var uPaths = {};
 var uOrigins = [];
+var uTimeout = Math.pow(2, 31) - 1;
